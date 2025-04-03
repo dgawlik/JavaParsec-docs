@@ -638,7 +638,7 @@ out.println(emphasis.parse("*emphasis*").ok());</code></pre>
 parsed up to '&#8217;, but then we have to end the rule with '*' which is not matched.</p>
 </div>
 <div class="paragraph">
-<p>We move on to the next rules and test them</p>
+<p>The following are the other rules</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -684,18 +684,18 @@ parsed up to '&#8217;, but then we have to end the rule with '*' which is not ma
 }</code></pre>
 </div>
 </div>
-<div class="paragraph">
-<p>Which gets:</p>
+<div class="listingblock">
+<div class="content">
+<pre>[Text[value=text with ], Strong[value=strong], Text[value= and ], Code[value=code]]</pre>
 </div>
-<div class="paragraph">
-<p><code>$ [Text[value=text with ], Strong[value=strong], Text[value= and ], Code[value=code]]</code></p>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_parsing_blocks"><a class="anchor" href="#_parsing_blocks"></a>Parsing blocks</h3>
 <div class="paragraph">
-<p>We move on to parsing on whole blocks. Lets start with the paragraph. It is any of the
-inline elements which are separated by either mutliple spaces or a single newline.</p>
+<p>Blocks are separated by two newlines. The more complex case is paragraph because it
+has to incorporate stylized text. For headers and links we can just parse simple text.
+Starting with paragraph:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -709,7 +709,7 @@ assert r3.isOk();</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The block quote is a normal text without punctuation, but each starts with '&gt;'.</p>
+<p>The block quote in this tutorial is a normal text without punctuation, but each  line starts with '&gt;'.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -726,11 +726,11 @@ assert r4.ok().equals("first line second line");</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Lets move on to separating paragraphs.</p>
+<p>Then we have to separate the blocks.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var blankLine = seq(many(c(' ')), c('\n'));
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var blankLine = seq(many(c(' ')), some(c('\n')));
 
 var r5 = sepBy(paragraph, blankLine).parse("""
         paragraph 1
@@ -741,11 +741,7 @@ assert r5.ok().size() == 2;</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Each block quote element will be separated by blank line which consists only
-of whitespace characters. So we use <code>sepBy</code> rule to gather all paragraphs in test.</p>
-</div>
-<div class="paragraph">
-<p>Heading is a text prefixed by number of '#' s. Lets parse that.</p>
+<p>Heading is a simple text prefixed by number of '#' s.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -864,18 +860,23 @@ heading.assertEquals(Context.of("## heading 2"), new Block.HeadingBlock(2, "head
 </div>
 </div>
 <div class="paragraph">
-<p>Result:</p>
+<p>The result</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre>$ [Paragraph[elements=[Text[value=This is a ], Strong[value=strong], Text[value=paragraph.], Text[value=With ], Code[value=code]]], Heading[nestLevel=1, text=Heading 1], BlockQoute[text= Some interesting  quote]]</pre>
+<pre>[Paragraph[elements=[Text[value=This is a ], Strong[value=strong], Text[value=paragraph.], Text[value=With ], Code[value=code]]], Heading[nestLevel=1, text=Heading 1], BlockQoute[text= Some interesting  quote]]</pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Note that we are doing it in iterative way. We started with bottom-most rule
+and built up to more complex ones. The experience was much like working in REPL.
+This way you can speed up the process significantly.</p>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-04-03 16:55:35 +0200
+Last updated 2025-04-03 22:42:57 +0200
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
