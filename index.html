@@ -459,8 +459,13 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </li>
 <li><a href="#_handling_errors">Handling errors</a></li>
 <li><a href="#_mapping_parser_results">Mapping parser results</a></li>
-<li><a href="#_working_with_indentation">Working with indentation</a></li>
+<li><a href="#_working_with_indentation_and_recursion">Working with indentation and recursion</a></li>
 <li><a href="#_api">Api</a></li>
+<li><a href="#_contribution">Contribution</a>
+<ul class="sectlevel2">
+<li><a href="#_github">.1. Github</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
@@ -1343,9 +1348,56 @@ This may be required if you want to map Ok result to Err of ignore Err for some 
 <p>In <a href="apidocs/org/jparsec/Ops.html">Ops</a> you will find convenence methods
 that implement common mapping tasks.</p>
 </div>
-<h1 id="_working_with_indentation" class="sect0"><a class="anchor" href="#_working_with_indentation"></a>Working with indentation</h1>
+<h1 id="_working_with_indentation_and_recursion" class="sect0"><a class="anchor" href="#_working_with_indentation_and_recursion"></a>Working with indentation and recursion</h1>
 <div class="paragraph">
-<p>Indentation inside the library is handled with a smart trick.</p>
+<p>Indentation inside the library is handled with a smart trick.
+Whenever <a href="apidocs/org/jparsec/Api.html#indent(org.jparsec.Matcher,java.lang.String)">indent()</a> takes a rule
+it establishes a scope with indentation incremented that is passed around with Context. Multiple nested indents are supported.
+<a href="apidocs/org/jparsec/Api.html#nl()">nl()</a> on the other hand is a newline, but
+it is <em>indentation sensitive</em>. It not only takes newline, but also trims input from indentation pattern
+times the indentation level. Here is the example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java"> Recursive&lt;Element&gt; elementOrContainer = recursive();
+   var text = some(alphaNum()).str();
+   var element = text
+        .map(s -&gt; (Element) new Element.Simple(s));
+   var container = seq(
+        text,
+        c(":"),
+        indent(
+            some(
+                seq(
+                    nl(),
+                    c("- "),
+                    elementOrContainer
+                ).map(Ops::takeLast)
+            ), "  "
+        )
+    ).map(v -&gt; (Element) new Element.Container(v.one(), v.three()));
+
+    elementOrContainer.set(any(container, element));
+
+    out.println(elementOrContainer.parse(
+"""
+container1:
+  - element1
+  - element2
+"""
+    ).ok());</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Container[key=container1, children=[Simple[value=element1], Simple[value=element2]]]</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>There is a happens-before problem for recursive rules. <code>elementOrContainer</code> needs to be
+defined before all the other rules, but for itself needs other rules definitions. To resolve
+this we used <a href="apidocs/org/jparsec/Api.html#recursive()">recursive()</a> combinator which
+acts as forward declaration, and is updated later on.</p>
 </div>
 <h1 id="_api" class="sect0"><a class="anchor" href="#_api"></a>Api</h1>
 <div class="paragraph">
@@ -1354,10 +1406,44 @@ that implement common mapping tasks.</p>
 <div class="paragraph">
 <p>You may take a look on <a href="apidocs/org/jparsec/Api.html">all combinators</a></p>
 </div>
+<h1 id="_contribution" class="sect0"><a class="anchor" href="#_contribution"></a>Contribution</h1>
+<div class="paragraph">
+<p>There are several ways to help.</p>
+</div>
+<div class="paragraph">
+<p>The library will be only as good as the much of the exposure to the
+community. If you would like to play around with the library and fill
+in some (inevitable) bugs, feel free to submit issues on the repository.</p>
+</div>
+<div class="sect2">
+<h3 id="_github"><a class="anchor" href="#_github"></a>.1. Github</h3>
+<div class="paragraph">
+<p>Link: <a href="https://github.com/dgawlik/JavaParsec" class="bare">https://github.com/dgawlik/JavaParsec</a></p>
+</div>
+<div class="paragraph">
+<p>There is also interesting topic of how bad is the performance. Some
+benchmarks are needed. If I have time I will write them, but maybe you
+will be faster so you can submit PR.</p>
+</div>
+<div class="paragraph">
+<p>There is also potential for writing more specialized combinators, if you have
+an idea contact me by email, it is under my github account.</p>
+</div>
+<div class="paragraph">
+<p>Finally the most interesting topic - generating the imperative parser in Java.
+The outline would be to add definition tree generation in the rules, with mapping functions
+disassembled and pasted to the resulting parser. Rules on chars would be coalesced to
+regexes/tokenization. If you would like to work on this topic feel free, even better contact me
+beforehand.</p>
+</div>
+<div class="paragraph">
+<p>If you found <strong>JavaParsec</strong> at least interesting, would you consider giving it a star?</p>
+</div>
+</div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-04-04 18:04:20 +0200
+Last updated 2025-04-04 20:20:06 +0200
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
