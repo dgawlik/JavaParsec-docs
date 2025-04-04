@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 2.0.15">
-<title>Introduction</title>
+<title>Mapping parser results</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | https://asciidoctor.org */
@@ -436,160 +436,65 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/styles/atom-one-dark.min.css">
 </head>
-<body class="article toc2 toc-left">
+<body class="article">
 <div id="header">
-<h1>Introduction</h1>
-<div id="toc" class="toc2">
-<div id="toctitle">Table of Contents</div>
-<ul class="sectlevel2">
-<li><a href="#_motivation">Motivation</a></li>
-<li><a href="#_quick_examples">Quick Examples</a></li>
-<li><a href="#_license">License</a></li>
-</ul>
-</div>
+<h1>Mapping parser results</h1>
 </div>
 <div id="content">
-<div id="preamble">
-<div class="sectionbody">
 <div class="paragraph">
-<p><strong>JavaParsec</strong> enables parsing in a pure functional way via <a href="https://wiki.haskell.org/index.php?title=Combinator_pattern">combinator pattern</a>.
-It is written in Java 21 and makes use of sealed classes, pattern matching and records. All operations are type-safe
-and there are no casting or null exceptions.</p>
-</div>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_motivation"><a class="anchor" href="#_motivation"></a>Motivation</h3>
-<div class="paragraph">
-<p>Creating a parser for new language or DSL is a big commitment.
-The amount of work is sometimes prohibitive for starting small and
-just experimenting with ideas. On the other hand generating full blown parser from
-ANTLR makes the iteration loops longer plus you have to learn a new library.</p>
+<p>Matchers resemble monads in a way that they "wrap" the
+returned results. So if there is a <code>Matcher&lt;Integer&gt;</code> on success
+it will return <code>ParseResult&lt;Integer&gt;</code> which you can get with
+<a href="apidocs/org/jparsec/containers/MatchResult.html#ok()">ok()</a> method.</p>
 </div>
 <div class="paragraph">
-<p>Pure functional languages are attractive for writing parsers, because of:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p><strong>REPL and quick iteration loops</strong> -  code consists of small or medium-sized
-functions that are directly testable in eval loop.
-You don&#8217;t even have to write tests since you are already testing it in REPL.</p>
-</li>
-<li>
-<p><strong>composability without side effects</strong> - because there is no mutable state
-the work boils down to wiring big functions from smaller functions.
-Once done - it is done, hardly ever the code needs runtime debugging,
-which especially for complex parsers is  desired property.</p>
-</li>
-<li>
-<p><strong>delegating correctness checking to type checker</strong> - the more checking is delegated
-to types, the less runtime debugging, plus your IDE can more help you</p>
-</li>
-</ul>
-</div>
-<div class="paragraph">
-<p><strong>JavaParsec</strong> brings this coding experience to Java land.
-It is a toolkit of parser combinators - parser objects both primitive and composite
-that match given pattern in a greedy manner. Every parser is composable
-with another and together they form yet another composite parser.</p>
-</div>
-<div class="paragraph">
-<p>There are various way that the library can be used, but it was designed primarily for
-quick experimentation and fast debuging. The coding experience is very much like
-scripting. This is why each parser is separated and complete
-on its own and ready to use. You can test each part separately on whatever input you like.</p>
-</div>
-<div class="paragraph">
-<p>For usage there a several recommended options:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>scratch files in IDE</p>
-</li>
-<li>
-<p><a href="https://www.jbang.dev/">JBang</a> with VSCodium editing</p>
-</li>
-<li>
-<p><a href="https://jupyter.org/">Jupyter</a> notebook with Java</p>
-</li>
-<li>
-<p>java 24 implicit class main functions</p>
-</li>
-</ul>
-</div>
-</div>
-<div class="sect2">
-<h3 id="_quick_examples"><a class="anchor" href="#_quick_examples"></a>Quick Examples</h3>
-<div class="paragraph">
-<p>For a real life examples refer to examples folder in repository.</p>
-</div>
-<div class="paragraph">
-<p><strong>Parsing ISO Date</strong></p>
+<p><a href="apidocs/org/jparsec/Matcher.html#map(java.util.function.Function)">map()</a> concerns itself only
+with success results. It is applied on success and runs the provided function during parse time. On
+the method invocation if you pass mapper returnin <code>U</code> you will get
+<code>Matcher&lt;U&gt;</code> as a result.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public void main() {
-
-    var year = times(digit(), 4).str()
-            .map(Integer::valueOf);
-
-    var month = times(digit(), 2).str()
-            .map(Integer::valueOf)
-            .failIf(i -&gt; i &lt; 1 || i &gt; 12, "wrong month");
-
-    var day = times(digit(), 2).str()
-            .map(Integer::valueOf)
-            .failIf(i -&gt; i &gt; 31, "wrong day");
-
-    var date = seq(
-            year,
-            anyOf('-'),
-            month,
-            anyOf('-'),
-            day
-    ).map(t -&gt; LocalDate.of(t.one(), t.three(), t.five()));
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var num = some(digit()).str()
+        .map(s -&gt; Integer.valueOf(s));
 
 
-    println(date.parse("2024-03-23"));
-}</code></pre>
+num.assertEquals(
+        Context.of("123"),
+        Integer.valueOf(123));</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p><strong>Parsing integer literal</strong></p>
+<p><a href="apidocs/org/jparsec/Matcher.html#mapOrError(java.util.function.Function)">mapOrError()</a> is more generic and allows to act on <a href="apidocs/org/jparsec/containers/MatchResult.html">MatchResult</a> itself.
+This may be required if you want to map Ok result to Err of ignore Err for some reason and return default.</p>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public void main(String[] args) {
-   var zero = c("0").map(Integer::valueOf);
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var str = some(digit()).str()
+        .mapOrError(res -&gt; switch (res) {
+            case Ok(String s, Context ctx) -&gt; {
+                if (s.equals("hello world")) {
+                    yield new Err&lt;&gt;("wrong string", ctx);
+                } else {
+                    yield new Ok&lt;&gt;(s, ctx);
+                }
+            }
+            case Err e -&gt; e;
 
-   var nonZero = seq(
-    nonZeroDigit(),
-    many(digit()).str()
-   ).str().map(Integer::valueOf);
+        });
 
-   var zeroNotFollowed = zero.dropRight(not(some(digit())));
 
-   var integer = any(zeroNotFollowed, nonZero);
-
-   assert integer.parse("0").ok() == 0;
-   assert integer.parse("123").ok() == 123;
-   assert !integer.parse("001").isOk();
-}</code></pre>
+   assert str.parse("hello world").error().equals("wrong string");</code></pre>
 </div>
 </div>
-</div>
-<div class="sect2">
-<h3 id="_license"><a class="anchor" href="#_license"></a>License</h3>
 <div class="paragraph">
-<p>This code is available under <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License Version 2.0</a></p>
-</div>
+<p>In <a href="apidocs/org/jparsec/Ops.html">Ops</a> you will find convenence methods
+that implement common mapping tasks.</p>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-04-04 16:23:46 +0200
+Last updated 2025-04-04 18:03:45 +0200
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>

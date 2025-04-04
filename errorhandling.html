@@ -442,8 +442,22 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </div>
 <div id="content">
 <div class="paragraph">
-<p><strong>JavaParsec</strong> returns first bottom-most error while
-taking the input.</p>
+<p>Whenever possible the library tries to return first encountered bottom most error.
+But there are some optimistic matchers like:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="apidocs/org/jparsec/Api.html#many(org.jparsec.Matcher)">many()</a></p>
+</li>
+<li>
+<p><a href="apidocs/org/jparsec/Api.html#opt(org.jparsec.Matcher)">opt()</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>that always succeed. This complicates the development but it is not impossible to get
+these errors. About that in a second.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -451,42 +465,61 @@ taking the input.</p>
 
 var result = identifier.parse("01");
 
-out.println(result.error());
-// expected non zero digit</code></pre>
+out.println(result.error());</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>expected non zero digit</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Sometimes for complex rules this is not desired. You can override
-the error by setting custom message like follows.</p>
+<p>Sometimes you may want to return more helpful, domain specific error messages.
+For example instead of error on char level you would like to say that the literal is invalid.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var identifier = seq(nonZeroDigit(), many(digit())).str();
-identifier = identifier.setErrorMessage("wrong identifier");
+identifier = identifier.setErrorMessage("wrong literal");
 
 var result = identifier.parse("01");
 
-out.println(result.error());
-// wrong identifier</code></pre>
+out.println(result.error());</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>wrong literal</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The way it works is that the top-most override wins, so
-if you set the error message on the tree root then you will get
-single error for anything. This is why it should be used sparingly
-on "tokenization" level.</p>
+<p>You can do that with <a href="apidocs/org/jparsec/Matcher.html#setErrorMessage(java.lang.String)">setErrorMessage()</a> method on the matcher. It has
+the tradeoff that the topmost customized message overrides all error messages on the bottom. So it
+should be used sparingly and only for non-related rules.</p>
 </div>
 <div class="paragraph">
-<p>Sometimes though you want to inspect the hierarchy of rules applied.
-This is possible with</p>
+<p>There are various methods on the result to inspect the error further.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="apidocs/org/jparsec/containers/MatchResult.html#errorTrace()">errorTrace()</a></p>
+</li>
+<li>
+<p><a href="apidocs/org/jparsec/containers/MatchResult.html#errorPrettyPrint()">errorPrettyPrint()</a></p>
+</li>
+<li>
+<p><a href="apidocs/org/jparsec/containers/MatchResult.html#verboseErrors()">verboseErrors()</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><strong>errorTrace()</strong> allows to investige the whole "stack" from top to bottom when the matcher fails.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">out.println(result.errorTrace());</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>Which gets</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -496,12 +529,10 @@ This is possible with</p>
 </div>
 </div>
 <div class="paragraph">
-<p>But some rules are optimistic and always return the positive result:
-like <code>many()</code> <code>opt()</code> and <code>sepBy()</code>.</p>
-</div>
-<div class="paragraph">
-<p>To inspect these errors you can view all the errors encountered, but
-be vary that sometimes these are false positives.</p>
+<p>Unfortunately it won&#8217;t print the stack for optimistic rules like
+<code>many()</code> <code>opt()</code> and <code>sepBy()</code>. But errors are still logged and
+you can view all the logs with <strong>verboseErrors()</strong>. Just take into
+account that some errors are completely normal during the parsing.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -517,8 +548,8 @@ out.println(result.verboseErrors());</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The most detailed error message with source context
-can be obtained in this way:</p>
+<p>For obtaining compiler like messages with line number, column and content context
+you can use <strong>errorPrettyPrint()</strong>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -543,7 +574,7 @@ expected "aaa"</pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-04-03 17:43:44 +0200
+Last updated 2025-04-04 17:40:43 +0200
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>

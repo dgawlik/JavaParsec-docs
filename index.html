@@ -458,6 +458,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </ul>
 </li>
 <li><a href="#_handling_errors">Handling errors</a></li>
+<li><a href="#_mapping_parser_results">Mapping parser results</a></li>
+<li><a href="#_working_with_indentation">Working with indentation</a></li>
 <li><a href="#_api">Api</a></li>
 </ul>
 </div>
@@ -716,8 +718,10 @@ public void main(String[] args) {
 <h3 id="_intro"><a class="anchor" href="#_intro"></a>.1. Intro</h3>
 <div class="paragraph">
 <p>In this section we will parse subset of Markdown
-syntax with library constructs. We will skip parsing
-code blocks and thematic breaks leaving only 4 productions.</p>
+syntax with library constructs. To make this part shorter this
+won&#8217;t be the full Markdown sytax. Markdown handles content as
+a list of blocks. It can be either a heading title, paragraph or a block quote.
+They are separated by a blank line - a line that contains only whitespaces.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -729,7 +733,8 @@ Block             ::=  HeadingBlock
 </div>
 </div>
 <div class="paragraph">
-<p>Heading block will start with multiplicity of '#' and end with a newline.</p>
+<p>Heading block starts with multiplicity of '#' contains alphanumeric characters and
+is ended by a newline.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -737,9 +742,8 @@ Block             ::=  HeadingBlock
 </div>
 </div>
 <div class="paragraph">
-<p>On the other hand paragraph will allow single line breaks which will be not
-considered after parsing. It will allow for formatting text with common markdown
-punctuation.</p>
+<p>On the other hand paragraph allows single line breaks. It will allow for formatting text with common markdown
+punctuation, like strong, italics and code.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -755,7 +759,7 @@ punctuation.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>We will also need blank lines to separate text blocks:</p>
+<p>And finally the blank line.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -763,7 +767,8 @@ punctuation.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>And finally the inline content is as follows:</p>
+<p>Inline content in this example appears only in paragraph. It is a couple of
+variant either normal text or formatted.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -772,15 +777,9 @@ InlineElement    ::=  Text
                    |  Emphasis
                    |  Strong
                    |  InlineCode
-                   |  Link</pre>
-</div>
-</div>
-<div class="paragraph">
-<p>Text is unicode characters without markdown punctuation.</p>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre>Emphasis ::= `"*" Text "*"
+                   |  Link
+
+Emphasis ::= `"*" Text "*"
 Strong = "**" Text "**"
 InlineCode  = "`" Text "`"
 Link   =  "[" Text "]" "(" Text ")"</pre>
@@ -790,10 +789,10 @@ Link   =  "[" Text "]" "(" Text ")"</pre>
 <div class="sect2">
 <h3 id="_parsing_inline_elements"><a class="anchor" href="#_parsing_inline_elements"></a>.2. Parsing inline elements</h3>
 <div class="paragraph">
-<p>So the text element are plain characters without the puctuation of markdown. First
-we write a rule for single char. <code>noneOf</code> matches any of the characters that is not specified.
-Then we will take many occurences with the requirement of at least one char present - <code>some</code>.
-<code>some()</code> returns a list of chars so we have to map it to string - a <code>str()</code> method does that.</p>
+<p>Text elements are plain characters without the puctuation of markdown. <code>noneOf</code> matches any of the characters that is not specified.
+Then we can combine it with higher level parser combinator - <code>some</code>.
+<code>some()</code> takes at least one or more occurences of given inner parser. Since
+we fed it with single char parser we get list of chars. A convenience method <code>str()</code> will join them into string.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -810,7 +809,8 @@ Then we will take many occurences with the requirement of at least one char pres
 </div>
 </div>
 <div class="paragraph">
-<p>Lets test that the punctuation is not parsed</p>
+<p>Combinators are greedy that they will take up input until it is valid. So in the
+case of encountering markdown punctuation, <code>text</code> parser will stop there.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -834,9 +834,24 @@ Then we will take many occurences with the requirement of at least one char pres
 </div>
 <div class="paragraph">
 <p><code>some()</code> succeeded because we have at least one character matching, but
-the text got parsed up to the first occurence of '*'. We will handle the error later.
-To make the assertions inline we can use convenience methods on the result,
-<code>assertEquals</code> which throw exception if condition not met.</p>
+the text got parsed up to the first occurence of '*'.</p>
+</div>
+<div class="paragraph">
+<p>To make fast assertions inline we can use convenience methods on the parser itself.
+Take a look at:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="apidocs/org/jparsec/Matcher.html#assertEquals(org.jparsec.containers.Context,T)">assertEquals</a></p>
+</li>
+<li>
+<p><a href="apidocs/org/jparsec/Matcher.html#assertFails(java.lang.String)">assertFails</a></p>
+</li>
+<li>
+<p><a href="apidocs/org/jparsec/Matcher.html#assertParses(java.lang.String)">assertParses</a></p>
+</li>
+</ul>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -852,8 +867,9 @@ To make the assertions inline we can use convenience methods on the result,
 </div>
 </div>
 <div class="paragraph">
-<p>Moving to the next elements we can reuse the text rule. But first we
-introduce sealed interface with records to hold variants.</p>
+<p>Before we introduce next rule it will be good to define conatiners for the results.
+If you had a chance to meet <em>Algebraic Data Types</em> then sealed interfaces and records are
+the way to achieve this result.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -867,8 +883,9 @@ introduce sealed interface with records to hold variants.</p>
 </div>
 </div>
 <div class="paragraph">
-<p>We have to "capture" the char '*' on start and end and text goes in the middle.
-The we will take the middle value from <code>Tuple3</code> and map it to constructor.</p>
+<p>Here we will write emphasis parser. It is enclosed in '*' characters and inside there is
+normal text. We can model one rule occuring after another with <a href="apidocs/org/jparsec/Api.html#seq(org.jparsec.Matcher,org.jparsec.Matcher,org.jparsec.Matcher)">seq()</a> combinator that takes
+up to 7 rules. What is important that it is totally typesafe thanks to generics.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -886,17 +903,19 @@ out.println(emphasis.parse("*emphasis*").ok());</code></pre>
 <pre>Text[value=emphasis]</pre>
 </div>
 </div>
+<div class="paragraph">
+<p>Quick assertion that formatted text will not pass.</p>
+</div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">emphasis.assertFails("* emphasis `code`*");</code></pre>
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">emphasis.assertFails("*emphasis `code`*");</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>In this way we make sure that everything is correct. Text gets only
-parsed up to '&#8217;, but then we have to end the rule with '*' which is not matched.</p>
+<p>Text gets only parsed up to '&#8217;, but then we have to end the rule with '*' which is not matched.</p>
 </div>
 <div class="paragraph">
-<p>The following are the other rules</p>
+<p>The other rules are handled in similar fashion.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -942,6 +961,9 @@ parsed up to '&#8217;, but then we have to end the rule with '*' which is not ma
 }</code></pre>
 </div>
 </div>
+<div class="paragraph">
+<p>The result:</p>
+</div>
 <div class="listingblock">
 <div class="content">
 <pre>[Text[value=text with ], Strong[value=strong], Text[value= and ], Code[value=code]]</pre>
@@ -951,9 +973,11 @@ parsed up to '&#8217;, but then we have to end the rule with '*' which is not ma
 <div class="sect2">
 <h3 id="_parsing_blocks"><a class="anchor" href="#_parsing_blocks"></a>.3. Parsing blocks</h3>
 <div class="paragraph">
-<p>Blocks are separated by two newlines. The more complex case is paragraph because it
-has to incorporate stylized text. For headers and links we can just parse simple text.
-Starting with paragraph:</p>
+<p>The most complex case is paragraph because it has to incorporate stylized text.
+For headers and links we will just parse simple text.
+<a href="apidocs/org/jparsec/Api.html#sepBy(org.jparsec.Matcher,org.jparsec.Matcher)">sepBy()</a> parser
+will intercalate first parser with the second parser. The separator can be just anything, here
+we will just use newline or multiplicity of spaces.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -967,7 +991,8 @@ assert r3.isOk();</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The block quote in this tutorial is a normal text without punctuation, but each  line starts with '&gt;'.</p>
+<p>Block quote is a possibly multiline text each line starting with '&gt;'. Here we will join on newlines and
+we will merge strings with space as separator.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -984,7 +1009,7 @@ assert r4.ok().equals("first line second line");</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Then we have to separate the blocks.</p>
+<p>We can separate whole blocks by a blank line.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -999,7 +1024,8 @@ assert r5.ok().size() == 2;</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Heading is a simple text prefixed by number of '#' s.</p>
+<p>Heading is a simple text prefixed by number of '#' s. We can use <a href="apidocs/org/jparsec/Api.html#times(org.jparsec.Matcher,int,int)">times()</a>
+matcher which asserts that the number of inner rule&#8217;s occurrences is exactly in the range.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1012,6 +1038,10 @@ assert r5.ok().size() == 2;</code></pre>
 
 heading.assertEquals(Context.of("## heading 2"), new Block.HeadingBlock(2, "heading 2"));</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p>Quick note on mapping method. Sequences return <a href="apidocs/org/jparsec/containers/seq/Tuple3.html">tuple objects</a>
+that are again up to 7. They are typesafe with the help of generics.</p>
 </div>
 <div class="paragraph">
 <p>And now we are ready to combine everything together:</p>
@@ -1133,8 +1163,22 @@ This way you can speed up the process significantly.</p>
 </div>
 <h1 id="_handling_errors" class="sect0"><a class="anchor" href="#_handling_errors"></a>Handling errors</h1>
 <div class="paragraph">
-<p><strong>JavaParsec</strong> returns first bottom-most error while
-taking the input.</p>
+<p>Whenever possible the library tries to return first encountered bottom most error.
+But there are some optimistic matchers like:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="apidocs/org/jparsec/Api.html#many(org.jparsec.Matcher)">many()</a></p>
+</li>
+<li>
+<p><a href="apidocs/org/jparsec/Api.html#opt(org.jparsec.Matcher)">opt()</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>that always succeed. This complicates the development but it is not impossible to get
+these errors. About that in a second.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1142,42 +1186,61 @@ taking the input.</p>
 
 var result = identifier.parse("01");
 
-out.println(result.error());
-// expected non zero digit</code></pre>
+out.println(result.error());</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>expected non zero digit</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>Sometimes for complex rules this is not desired. You can override
-the error by setting custom message like follows.</p>
+<p>Sometimes you may want to return more helpful, domain specific error messages.
+For example instead of error on char level you would like to say that the literal is invalid.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var identifier = seq(nonZeroDigit(), many(digit())).str();
-identifier = identifier.setErrorMessage("wrong identifier");
+identifier = identifier.setErrorMessage("wrong literal");
 
 var result = identifier.parse("01");
 
-out.println(result.error());
-// wrong identifier</code></pre>
+out.println(result.error());</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>wrong literal</pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The way it works is that the top-most override wins, so
-if you set the error message on the tree root then you will get
-single error for anything. This is why it should be used sparingly
-on "tokenization" level.</p>
+<p>You can do that with <a href="apidocs/org/jparsec/Matcher.html#setErrorMessage(java.lang.String)">setErrorMessage()</a> method on the matcher. It has
+the tradeoff that the topmost customized message overrides all error messages on the bottom. So it
+should be used sparingly and only for non-related rules.</p>
 </div>
 <div class="paragraph">
-<p>Sometimes though you want to inspect the hierarchy of rules applied.
-This is possible with</p>
+<p>There are various methods on the result to inspect the error further.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><a href="apidocs/org/jparsec/containers/MatchResult.html#errorTrace()">errorTrace()</a></p>
+</li>
+<li>
+<p><a href="apidocs/org/jparsec/containers/MatchResult.html#errorPrettyPrint()">errorPrettyPrint()</a></p>
+</li>
+<li>
+<p><a href="apidocs/org/jparsec/containers/MatchResult.html#verboseErrors()">verboseErrors()</a></p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p><strong>errorTrace()</strong> allows to investige the whole "stack" from top to bottom when the matcher fails.</p>
 </div>
 <div class="listingblock">
 <div class="content">
 <pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">out.println(result.errorTrace());</code></pre>
 </div>
-</div>
-<div class="paragraph">
-<p>Which gets</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1187,12 +1250,10 @@ This is possible with</p>
 </div>
 </div>
 <div class="paragraph">
-<p>But some rules are optimistic and always return the positive result:
-like <code>many()</code> <code>opt()</code> and <code>sepBy()</code>.</p>
-</div>
-<div class="paragraph">
-<p>To inspect these errors you can view all the errors encountered, but
-be vary that sometimes these are false positives.</p>
+<p>Unfortunately it won&#8217;t print the stack for optimistic rules like
+<code>many()</code> <code>opt()</code> and <code>sepBy()</code>. But errors are still logged and
+you can view all the logs with <strong>verboseErrors()</strong>. Just take into
+account that some errors are completely normal during the parsing.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1208,8 +1269,8 @@ out.println(result.verboseErrors());</code></pre>
 </div>
 </div>
 <div class="paragraph">
-<p>The most detailed error message with source context
-can be obtained in this way:</p>
+<p>For obtaining compiler like messages with line number, column and content context
+you can use <strong>errorPrettyPrint()</strong>.</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -1231,6 +1292,61 @@ Line: 1, Column: 0
 expected "aaa"</pre>
 </div>
 </div>
+<h1 id="_mapping_parser_results" class="sect0"><a class="anchor" href="#_mapping_parser_results"></a>Mapping parser results</h1>
+<div class="paragraph">
+<p>Matchers resemble monads in a way that they "wrap" the
+returned results. So if there is a <code>Matcher&lt;Integer&gt;</code> on success
+it will return <code>ParseResult&lt;Integer&gt;</code> which you can get with
+<a href="apidocs/org/jparsec/containers/MatchResult.html#ok()">ok()</a> method.</p>
+</div>
+<div class="paragraph">
+<p><a href="apidocs/org/jparsec/Matcher.html#map(java.util.function.Function)">map()</a> concerns itself only
+with success results. It is applied on success and runs the provided function during parse time. On
+the method invocation if you pass mapper returnin <code>U</code> you will get
+<code>Matcher&lt;U&gt;</code> as a result.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var num = some(digit()).str()
+        .map(s -&gt; Integer.valueOf(s));
+
+
+num.assertEquals(
+        Context.of("123"),
+        Integer.valueOf(123));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p><a href="apidocs/org/jparsec/Matcher.html#mapOrError(java.util.function.Function)">mapOrError()</a> is more generic and allows to act on <a href="apidocs/org/jparsec/containers/MatchResult.html">MatchResult</a> itself.
+This may be required if you want to map Ok result to Err of ignore Err for some reason and return default.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">var str = some(digit()).str()
+        .mapOrError(res -&gt; switch (res) {
+            case Ok(String s, Context ctx) -&gt; {
+                if (s.equals("hello world")) {
+                    yield new Err&lt;&gt;("wrong string", ctx);
+                } else {
+                    yield new Ok&lt;&gt;(s, ctx);
+                }
+            }
+            case Err e -&gt; e;
+
+        });
+
+
+   assert str.parse("hello world").error().equals("wrong string");</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In <a href="apidocs/org/jparsec/Ops.html">Ops</a> you will find convenence methods
+that implement common mapping tasks.</p>
+</div>
+<h1 id="_working_with_indentation" class="sect0"><a class="anchor" href="#_working_with_indentation"></a>Working with indentation</h1>
+<div class="paragraph">
+<p>Indentation inside the library is handled with a smart trick.</p>
+</div>
 <h1 id="_api" class="sect0"><a class="anchor" href="#_api"></a>Api</h1>
 <div class="paragraph">
 <p>All JavaDocs are present <a href="apidocs/index.html">here</a></p>
@@ -1241,7 +1357,7 @@ expected "aaa"</pre>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-04-03 17:07:27 +0200
+Last updated 2025-04-04 18:04:20 +0200
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
