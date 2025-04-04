@@ -443,7 +443,8 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel2">
 <li><a href="#_motivation">Motivation</a></li>
-<li><a href="#_quick_example">Quick Example</a></li>
+<li><a href="#_quick_examples">Quick Examples</a></li>
+<li><a href="#_license">License</a></li>
 </ul>
 </div>
 </div>
@@ -452,20 +453,21 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 <div class="sectionbody">
 <div class="paragraph">
 <p><strong>JavaParsec</strong> enables parsing in a pure functional way via <a href="https://wiki.haskell.org/index.php?title=Combinator_pattern">combinator pattern</a>.
-It is written in Java 21 and makes heavy use of sealed classes, pattern matching and records. Type safety is put
-first and there are no casting or null exceptions.</p>
+It is written in Java 21 and makes use of sealed classes, pattern matching and records. All operations are type-safe
+and there are no casting or null exceptions.</p>
 </div>
 </div>
 </div>
 <div class="sect2">
 <h3 id="_motivation"><a class="anchor" href="#_motivation"></a>Motivation</h3>
 <div class="paragraph">
-<p>Writing a parser for new programming language is a big commitment.
-The complexity is prohibitive to just quickly experimenting with
-various ideas at hand.</p>
+<p>Creating a parser for new language or DSL is a big commitment.
+The amount of work is sometimes prohibitive for starting small and
+just experimenting with ideas. On the other hand generating full blown parser from
+ANTLR makes the iteration loops longer plus you have to learn a new library.</p>
 </div>
 <div class="paragraph">
-<p>Pure functional languages are easier to write parsers, because of:</p>
+<p>Pure functional languages are attractive for write parsers, because of:</p>
 </div>
 <div class="ulist">
 <ul>
@@ -489,13 +491,14 @@ to types, the less runtime debugging, plus your IDE can more help you</p>
 <div class="paragraph">
 <p><strong>JavaParsec</strong> brings this coding experience to Java land.
 It is a toolkit of parser combinators - parser objects both primitive and composite
-that match given pattern in a greedy manner. Every such parser is composable
-with another one and together they form yet another (more generic) parser.</p>
+that match given pattern in a greedy manner. Every parser is composable
+with another and together they form yet another composite parser.</p>
 </div>
 <div class="paragraph">
-<p>There are various way that it can be used, but it was designed primarily for
-quick experimentation and fast debug loops. This is why each parser is already complete
-in its own and ready to use. And you run it on whatever you like.</p>
+<p>There are various way that the library can be used, but it was designed primarily for
+quick experimentation and fast debuging. The coding experience is very much like
+scripting. This is why each parser is separated and complete
+on its own and ready to use. You can test each part separately on whatever input you like.</p>
 </div>
 <div class="paragraph">
 <p>For usage there a several recommended options:</p>
@@ -506,10 +509,10 @@ in its own and ready to use. And you run it on whatever you like.</p>
 <p>scratch files in IDE</p>
 </li>
 <li>
-<p>jbang with VSCode editing</p>
+<p><a href="https://www.jbang.dev/">JBang</a> with VSCodium editing</p>
 </li>
 <li>
-<p>jupyter java notebooks</p>
+<p><a href="https://jupyter.org/">Jupyter</a> notebook with Java</p>
 </li>
 <li>
 <p>java 24 implicit class main functions</p>
@@ -518,9 +521,12 @@ in its own and ready to use. And you run it on whatever you like.</p>
 </div>
 </div>
 <div class="sect2">
-<h3 id="_quick_example"><a class="anchor" href="#_quick_example"></a>Quick Example</h3>
+<h3 id="_quick_examples"><a class="anchor" href="#_quick_examples"></a>Quick Examples</h3>
 <div class="paragraph">
-<p>This example is taken from the examples directory. For more complex cases refer to the repository.</p>
+<p>For a real life examples refer to examples folder in repository.</p>
+</div>
+<div class="paragraph">
+<p><strong>Parsing ISO Date</strong></p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -545,46 +551,45 @@ in its own and ready to use. And you run it on whatever you like.</p>
             day
     ).map(t -&gt; LocalDate.of(t.one(), t.three(), t.five()));
 
-    var hour = times(digit(), 2).str()
-            .map(Integer::valueOf)
-            .failIf(i -&gt; i &gt; 24, "wrong hour");
 
-    var minute = times(digit(), 2).str()
-            .map(Integer::valueOf)
-            .failIf(i -&gt; i &gt; 59, "wrong minute");
-
-    var second = times(digit(), 2).str()
-            .map(Integer::valueOf)
-            .failIf(i -&gt; i &gt; 59, "wrong second");
-
-    var time = seq(
-            anyOf('T'),
-            hour,
-            anyOf(':'),
-            minute,
-            anyOf(':'),
-            second
-    ).map(t -&gt; LocalTime.of(t.two(), t.four(), t.six()));
-
-    var datetime = choice(
-            seq(date, time),
-            date
-    ).map(e -&gt; switch (e) {
-        case Left(Pair&lt;LocalDate, LocalTime&gt; p) -&gt; new Left&lt;&gt;(  LocalDateTime.of(p.first(), p.second()));
-        case Right(LocalDate value) -&gt; new Right&lt;&gt;(value);
-    });
-
-    println(datetime.parse("2024-03-23"));
-    println(datetime.parse("2024-03-23T11:33:01"));
-    println(datetime.parse("2024-13-23"));
+    println(date.parse("2024-03-23"));
 }</code></pre>
 </div>
+</div>
+<div class="paragraph">
+<p><strong>Parsing integer literal</strong></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlightjs highlight"><code class="language-java hljs" data-lang="java">public void main(String[] args) {
+   var zero = c("0").map(Integer::valueOf);
+
+   var nonZero = seq(
+    nonZeroDigit(),
+    many(digit()).str()
+   ).str().map(Integer::valueOf);
+
+   var zeroNotFollowed = zero.dropRight(not(some(digit())));
+
+   var integer = any(zeroNotFollowed, nonZero);
+
+   assert integer.parse("0").ok() == 0;
+   assert integer.parse("123").ok() == 123;
+   assert !integer.parse("001").isOk();
+}</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_license"><a class="anchor" href="#_license"></a>License</h3>
+<div class="paragraph">
+<p>This code is available under <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License Version 2.0</a></p>
 </div>
 </div>
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2025-04-03 17:53:01 +0200
+Last updated 2025-04-04 16:03:49 +0200
 </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.3/highlight.min.js"></script>
